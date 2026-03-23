@@ -1,0 +1,46 @@
+:root {
+  --bg: #f5f7fb;
+  --text: #1c2434;
+  --muted: #6a7383;
+  --surface: #ffffff;
+  --border: #d9dfeb;
+  --radius: 12px;
+  --shadow: 0 8px 24px rgba(20, 33, 61, 0.08);
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+}
+
+.shell {
+  max-width: 960px;
+  margin: 48px auto;
+  padding: 0 16px;
+}
+
+.shell__header {
+  margin-bottom: 16px;
+}
+
+.shell__header h1 {
+  margin: 0 0 8px;
+}
+
+.shell__header small {
+  color: var(--muted);
+}
+
+.card {
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
