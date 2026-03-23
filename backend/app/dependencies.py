@@ -3,7 +3,7 @@ from typing import Annotated
 
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from jose import JWTError
+from jwt import PyJWTError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -30,7 +30,7 @@ def get_current_user(
     try:
         payload = decode_access_token(credentials.credentials)
         user_id = str(payload["sub"])
-    except (JWTError, KeyError):
+    except (PyJWTError, KeyError):
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="Token inválido ou expirado",

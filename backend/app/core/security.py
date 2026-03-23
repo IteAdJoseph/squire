@@ -1,6 +1,6 @@
 from datetime import UTC, datetime, timedelta
 
-from jose import jwt
+import jwt
 from passlib.context import CryptContext
 
 from app.config import settings
@@ -20,9 +20,11 @@ def hash_password(plain: str) -> str:
 def create_access_token(user_id: str, tenant_id: str) -> str:
     expire = datetime.now(UTC) + timedelta(minutes=settings.access_token_expire_minutes)
     payload = {"sub": user_id, "tenant_id": tenant_id, "exp": expire}
-    return str(jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM))
+    return jwt.encode(payload, settings.secret_key, algorithm=ALGORITHM)
 
 
 def decode_access_token(token: str) -> dict[str, object]:
-    result = jwt.decode(token, settings.secret_key, algorithms=[ALGORITHM])
-    return dict(result)
+    result: dict[str, object] = jwt.decode(
+        token, settings.secret_key, algorithms=[ALGORITHM]
+    )
+    return result
