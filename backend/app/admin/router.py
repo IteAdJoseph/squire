@@ -151,6 +151,16 @@ def create_user(
             status_code=status.HTTP_409_CONFLICT,
             detail="Username já existe neste tenant",
         )
+    if db.scalar(
+        select(User).where(
+            User.tenant_id == tenant_id,
+            User.email == body.email,
+        )
+    ):
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Email já existe neste tenant",
+        )
     user = User(
         tenant_id=tenant_id,
         email=body.email,
@@ -330,6 +340,12 @@ def record_payment(
         BillingStatus.grace,
     }:
         billing.billing_status = BillingStatus.active
+        reactivated_tenant = db.get(Tenant, tenant_id)
+        if (
+            reactivated_tenant is not None
+            and reactivated_tenant.access_status == AccessStatus.disabled
+        ):
+            reactivated_tenant.access_status = AccessStatus.enabled
     db.flush()
     _audit(
         db,

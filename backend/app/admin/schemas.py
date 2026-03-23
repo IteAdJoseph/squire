@@ -1,8 +1,9 @@
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
+from typing import Annotated
 
-from pydantic import BaseModel, ConfigDict, field_validator
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import (
     AccessStatus,
@@ -42,7 +43,7 @@ class CreateBillingIn(BaseModel):
 
 
 class PaymentIn(BaseModel):
-    amount: Decimal
+    amount: Annotated[Decimal, Field(gt=0)]
     paid_at: datetime
     notes: str | None = None
 
