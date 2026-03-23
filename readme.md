@@ -42,6 +42,10 @@ Fica fora do escopo inicial:
 - Redis/Valkey
 - SQLAlchemy + Alembic
 
+### Frontend interno
+- Vite
+- Alpine.js
+
 ### Processamento assíncrono
 - worker dedicado
 - scheduler de jobs
@@ -61,6 +65,14 @@ Fica fora do escopo inicial:
 repo/
   AGENTS.md
   render.yaml
+  frontend/
+    index.html
+    src/
+      main.js
+      styles.css
+      lib/
+        api.js
+        auth.js
   backend/
     app/
       main.py
@@ -75,3 +87,18 @@ repo/
       ci.yml
       redeploy-render.yml
     dependabot.yml
+
+## Frontend interno (isolado da landing)
+
+O frontend de app interna roda de forma separada da landing atual em `landing/`.
+
+Comandos:
+
+- `cd frontend && npm install`
+- `cd frontend && npm run dev`
+- `cd frontend && npm run build`
+- `cd frontend && npm run preview`
+
+Variável de ambiente:
+
+- `VITE_API_BASE_URL` (exemplo em `frontend/.env.example`)
