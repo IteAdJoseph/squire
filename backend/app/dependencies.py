@@ -56,9 +56,7 @@ def require_active_tenant(
             detail="Acesso bloqueado",
         )
     billing = db.scalar(
-        select(BillingAccount).where(
-            BillingAccount.tenant_id == current_user.tenant_id
-        )
+        select(BillingAccount).where(BillingAccount.tenant_id == current_user.tenant_id)
     )
     if billing is None or billing.billing_status in _BLOCKED_BILLING:
         raise HTTPException(
