@@ -1,0 +1,126 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Reminda App</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap"
+      rel="stylesheet"
+    />
+    <script type="module" src="/src/main.js"></script>
+  </head>
+  <body x-data="appLayout()">
+    <header class="app-header">
+      <div class="container row between center">
+        <h1 class="logo">re<span class="dot">•</span>min<span class="dot">•</span>da</h1>
+        <span class="badge">MVP operação</span>
+      </div>
+    </header>
+
+    <main class="container app-main">
+      <aside class="card menu">
+        <h2 class="menu-title">Navegação</h2>
+        <nav>
+          <button class="menu-item" :class="{active: tab === 'overview'}" @click="tab='overview'">Visão geral</button>
+          <button class="menu-item" :class="{active: tab === 'tokens'}" @click="tab='tokens'">Design tokens</button>
+          <button class="menu-item" :class="{active: tab === 'forms'}" @click="tab='forms'">Formulários</button>
+          <button class="menu-item" :class="{active: tab === 'tables'}" @click="tab='tables'">Listagens</button>
+        </nav>
+      </aside>
+
+      <section class="content">
+        <div class="card" x-show="tab === 'overview'">
+          <p class="eyebrow">Base visual</p>
+          <h2 class="title">Simples e direto para operação</h2>
+          <p class="text-muted">
+            Este frontend mantém a linguagem da landing (cores, tipografia, cartões e status)
+            para validar o fluxo operacional sem complexidade.
+          </p>
+          <div class="chip-row">
+            <span class="chip">WhatsApp automático</span>
+            <span class="chip amber">Pix integrado</span>
+            <span class="chip blue">Tudo no celular</span>
+          </div>
+        </div>
+
+        <div class="card" x-show="tab === 'tokens'">
+          <p class="eyebrow">Design system mínimo</p>
+          <h2 class="title">Paleta e componentes base</h2>
+          <div class="token-grid">
+            <div><small>Primária</small><div class="swatch green"></div></div>
+            <div><small>Fundo</small><div class="swatch light"></div></div>
+            <div><small>Texto</small><div class="swatch ink"></div></div>
+            <div><small>Borda</small><div class="swatch border"></div></div>
+          </div>
+          <div class="row gap-sm wrap">
+            <button class="btn">Salvar</button>
+            <button class="btn ghost">Cancelar</button>
+            <span class="status pending">Aguardando sinal</span>
+            <span class="status ok">Confirmado</span>
+          </div>
+        </div>
+
+        <div class="card" x-show="tab === 'forms'">
+          <p class="eyebrow">Padrão de formulário</p>
+          <h2 class="title">Cadastro rápido</h2>
+          <form class="form-grid" @submit.prevent>
+            <label>
+              Nome
+              <input type="text" placeholder="Ex: Maria Souza" />
+            </label>
+            <label>
+              Telefone
+              <input type="text" placeholder="+55 11 99999-9999" />
+            </label>
+            <label>
+              Serviço
+              <input type="text" placeholder="Corte feminino" />
+            </label>
+            <label>
+              Sinal (R$)
+              <input type="number" placeholder="50.00" />
+            </label>
+            <div class="row gap-sm">
+              <button class="btn" type="submit">Cadastrar</button>
+              <button class="btn ghost" type="button">Limpar</button>
+            </div>
+          </form>
+        </div>
+
+        <div class="card" x-show="tab === 'tables'">
+          <p class="eyebrow">Listagem responsiva</p>
+          <h2 class="title">Agendamentos</h2>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Cliente</th>
+                  <th>Serviço</th>
+                  <th>Horário</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td>Ana</td>
+                  <td>Consulta</td>
+                  <td>14:00</td>
+                  <td><span class="status pending">awaiting_deposit</span></td>
+                </tr>
+                <tr>
+                  <td>Bruno</td>
+                  <td>Banho e tosa</td>
+                  <td>15:30</td>
+                  <td><span class="status ok">confirmed</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
