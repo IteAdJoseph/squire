@@ -107,3 +107,20 @@ def test_advance_clamps_for_short_month() -> None:
     payment_date = date(2025, 1, 31)
     _, _, next_due = _advance_billing_cycle(current_due, 31, _today=payment_date)
     assert next_due == date(2025, 2, 28)
+
+
+def test_advance_very_late_payment() -> None:
+    """Pagamento muito atrasado: current_due=Feb 15, pagamento em Mar 20.
+
+    Feb→Mar (Mar 15 ≤ Mar 20) → avança mais um mês → Apr 15 > Mar 20. Correto.
+    Garante que period_end >= period_start (período nunca invertido).
+    """
+    current_due = date(2025, 2, 15)
+    payment_date = date(2025, 3, 20)
+    period_start, period_end, next_due = _advance_billing_cycle(
+        current_due, 15, _today=payment_date
+    )
+    assert next_due == date(2025, 4, 15)
+    assert period_start == payment_date
+    assert period_end == date(2025, 4, 14)
+    assert period_end >= period_start

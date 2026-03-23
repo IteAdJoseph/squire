@@ -72,21 +72,25 @@ def _advance_billing_cycle(
     *,
     _today: date | None = None,
 ) -> tuple[date, date, date]:
-    """Avança o ciclo de cobrança exatamente 1 mês a partir de current_due.
+    """Avança o ciclo mês a mês a partir de current_due até next_due > today.
 
-    Usado em record_payment: cada pagamento quita 1 ciclo mensal.
-    O novo next_due_date é sempre 1 mês após billing.next_due_date,
-    independente de quando o pagamento foi recebido (adiantado, em dia
-    ou atrasado). _today permite testes determinísticos.
+    Usado em record_payment: cada pagamento quita todos os ciclos em aberto.
+    Quando o tenant está mais de 1 mês atrasado, avança múltiplos ciclos para
+    garantir que o novo período começa depois da data do pagamento.
+    _today permite testes determinísticos.
     """
     today = _today if _today is not None else date.today()
     year, month = current_due.year, current_due.month
-    if month == 12:
-        ny, nm = year + 1, 1
-    else:
-        ny, nm = year, month + 1
-    ld = calendar.monthrange(ny, nm)[1]
-    next_due = date(ny, nm, min(due_day, ld))
+    while True:
+        if month == 12:
+            ny, nm = year + 1, 1
+        else:
+            ny, nm = year, month + 1
+        ld = calendar.monthrange(ny, nm)[1]
+        next_due = date(ny, nm, min(due_day, ld))
+        if next_due > today:
+            break
+        year, month = next_due.year, next_due.month
     return today, next_due - timedelta(days=1), next_due
 
 
