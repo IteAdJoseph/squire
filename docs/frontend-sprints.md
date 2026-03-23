@@ -9,31 +9,58 @@
 
 ## Sprint 0 — Fundação (sem backend novo necessário)
 
-**Objetivo:** projeto funcionando, autenticação completa, shell navegável.
+**Objetivo:** projeto funcionando, landing page reativa, autenticação completa, shell navegável.
 
 ### Setup
 - [ ] Inicializar projeto: `npm create vite@latest frontend -- --template react-ts`
 - [ ] Instalar dependências base: `react-router-dom`, `axios`, `vite-plugin-pwa`
 - [ ] Configurar PWA: manifest, service worker, ícones (nome: Reminda)
 - [ ] Configurar proxy de API no Vite para desenvolvimento local
+- [ ] Mover `landing/index.html` para dentro do projeto React (substituir o arquivo estático)
 - [ ] Adicionar Render Static Site ao `render.yaml` apontando para `frontend/dist`
 - [ ] Adicionar etapa de build frontend no CI (`.github/workflows/ci.yaml`)
 
-### Auth (cobre UC-04)
-- [ ] Tela de login — campos: username + senha; tenant identificado pelo username
-- [ ] Chamada `POST /auth/login`; armazenar JWT no `localStorage`
-- [ ] Interceptor Axios: anexar `Authorization: Bearer <token>` em todas as requisições
-- [ ] Interceptor de resposta: redirecionar para login em 401
-- [ ] Rota protegida (`<RequireAuth>`) — wraps em todas as páginas autenticadas
-- [ ] Logout — limpar token, redirecionar para login
+### Landing page reativa
+A landing page existente (`landing/index.html`) é convertida para um componente React
+e passa a reagir ao estado de autenticação — padrão SaaS (Notion, Linear, Vercel, etc).
 
-### Shell
+**Roteamento raiz:**
+```
+/          → <LandingPage>   (pública)
+/login     → <LoginPage>     (redireciona para /app se já autenticado)
+/app/*     → <AppShell>      (requer auth; redireciona para /login se não autenticado)
+```
+
+**Comportamento da landing por estado de auth:**
+
+| Estado            | CTA principal              | Comportamento do header         |
+|-------------------|----------------------------|---------------------------------|
+| Não autenticado   | "Entrar" + "Começar grátis"| links normais para /login       |
+| Autenticado       | "Abrir o app →"            | nome do tenant exibido; sem "Entrar" |
+
+**Implementação:**
+- [ ] `AuthContext` — provê `{ user, token, login(), logout(), isAuthenticated }` para toda a árvore
+- [ ] `useAuth()` hook — lê o contexto em qualquer componente
+- [ ] JWT persistido no `localStorage`; validação de expiração no carregamento inicial
+- [ ] Converter landing (`landing/index.html`) para `src/pages/Landing.tsx` preservando design
+- [ ] Header da landing condicionado: `isAuthenticated ? <HeaderLogado> : <HeaderPublico>`
+- [ ] `<RequireAuth>` wrapper — redireciona para `/login` se não autenticado
+- [ ] `<RedirectIfAuth>` wrapper — redireciona para `/app` se já autenticado (usado em `/login`)
+
+### Auth (cobre UC-04)
+- [ ] Tela de login (`/login`) — campos: username + senha
+- [ ] Chamada `POST /auth/login`; armazenar JWT via `AuthContext.login()`
+- [ ] Interceptor Axios: anexar `Authorization: Bearer <token>` em todas as requisições
+- [ ] Interceptor de resposta: chamar `logout()` e redirecionar em 401
+- [ ] Logout — limpar token, redirecionar para `/`
+
+### Shell do app (`/app/*`)
 - [ ] Layout principal: sidebar/bottom nav + área de conteúdo
 - [ ] Navegação: Agenda | Clientes | Serviços | (Admin — visível só para owner do admin tenant)
 - [ ] Responsivo: sidebar em desktop, bottom nav em mobile
 
 **Backend necessário:** `POST /auth/login` ✅ (já existe)
-**Entrega:** app instalável como PWA, login funcionando, navegação entre telas vazias.
+**Entrega:** landing page reativa ao estado de login, PWA instalável, auth funcionando, shell com rotas vazias.
 
 ---
 
