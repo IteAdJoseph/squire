@@ -14,6 +14,15 @@ Este repositório contém um SaaS enxuto para:
 4. Toda mudança que afeta fluxo de cobrança, autenticação, webhooks ou banco exige revisão humana.
 5. Nunca coloque segredos no código ou em arquivos versionados.
 
+## Documentos de referência obrigatórios
+Antes de implementar qualquer mudança, leia:
+- `readme.md`
+- `docs/storyboard.md`
+- `docs/use-cases.md`
+- `render.yaml`
+
+Se houver conflito entre código antigo e estes documentos, siga os documentos e proponha ajuste explícito no código.
+
 ## Fluxo padrão para agentes
 1. Leia primeiro:
    - `README.md`
