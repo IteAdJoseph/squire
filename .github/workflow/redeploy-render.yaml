@@ -1,0 +1,30 @@
+name: Manual Render Redeploy
+
+on:
+  workflow_dispatch:
+    inputs:
+      service_id:
+        description: "Render service ID (ex.: srv-xxxxxxxxxxxx)"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  redeploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Install pinned Render CLI
+        run: |
+          curl -L https://github.com/render-oss/cli/releases/download/v2.14.0/cli_2.14.0_linux_amd64.zip -o render.zip
+          unzip render.zip
+          sudo mv cli_v2.14.0 /usr/local/bin/render
+
+      - name: Trigger redeploy
+        env:
+          RENDER_API_KEY: ${{ secrets.RENDER_API_KEY }}
+          CI: true
+        run: |
+          render deploys create "${{ github.event.inputs.service_id }}" --confirm --output text

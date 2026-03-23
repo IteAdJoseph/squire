@@ -1,0 +1,184 @@
+# render.yaml
+#
+# Estrutura enxuta para:
+# - FastAPI web
+# - worker assíncrono
+# - scheduler simples via cron
+# - Postgres gerenciado
+# - Redis/Valkey gerenciado
+#
+# Observação:
+# - Use "New Blueprint Instance" no Render para criar tudo a partir deste arquivo.
+# - Os segredos com sync: false serão pedidos na criação inicial do Blueprint.
+# - Se depois você adicionar novos segredos, atualize-os manualmente no Render.
+
+services:
+  - type: keyvalue
+    name: reminda-cache
+    region: virginia
+    plan: starter
+    ipAllowList: []
+    maxmemoryPolicy: allkeys-lru
+
+  - type: web
+    name: reminda-api
+    runtime: python
+    region: virginia
+    plan: starter
+    buildCommand: |
+      cd backend
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt -r requirements-dev.txt
+    preDeployCommand: |
+      cd backend
+      alembic upgrade head
+    startCommand: |
+      cd backend
+      gunicorn -k uvicorn.workers.UvicornWorker app.main:app --bind 0.0.0.0:$PORT --workers 2
+    autoDeployTrigger: checksPass
+    healthCheckPath: /health
+    envVars:
+      - fromGroup: reminda-shared
+
+      - key: PORT
+        value: "10000"
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reminda-db
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: reminda-cache
+          property: connectionString
+
+      - key: SECRET_KEY
+        generateValue: true
+
+      - key: ENCRYPTION_KEY
+        generateValue: true
+
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+
+      - key: WHATSAPP_PHONE_NUMBER_ID
+        sync: false
+
+      - key: WHATSAPP_VERIFY_TOKEN
+        sync: false
+
+      - key: PIX_PROVIDER_API_KEY
+        sync: false
+
+      - key: PIX_PROVIDER_WEBHOOK_SECRET
+        sync: false
+
+  - type: worker
+    name: reminda-worker
+    runtime: python
+    region: virginia
+    plan: starter
+    buildCommand: |
+      cd backend
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt -r requirements-dev.txt
+    startCommand: |
+      cd backend
+      python -m app.worker
+    autoDeployTrigger: checksPass
+    envVars:
+      - fromGroup: reminda-shared
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reminda-db
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: reminda-cache
+          property: connectionString
+
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: reminda-api
+          envVarKey: SECRET_KEY
+
+      - key: ENCRYPTION_KEY
+        fromService:
+          type: web
+          name: reminda-api
+          envVarKey: ENCRYPTION_KEY
+
+      - key: WHATSAPP_ACCESS_TOKEN
+        sync: false
+
+      - key: PIX_PROVIDER_API_KEY
+        sync: false
+
+  - type: cron
+    name: reminda-scheduler
+    runtime: python
+    region: virginia
+    plan: starter
+    schedule: "*/5 * * * *"
+    buildCommand: |
+      cd backend
+      python -m pip install --upgrade pip
+      pip install -r requirements.txt -r requirements-dev.txt
+    startCommand: |
+      cd backend
+      python -m app.jobs.run_due
+    autoDeployTrigger: checksPass
+    envVars:
+      - fromGroup: reminda-shared
+
+      - key: DATABASE_URL
+        fromDatabase:
+          name: reminda-db
+          property: connectionString
+
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: reminda-cache
+          property: connectionString
+
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: reminda-api
+          envVarKey: SECRET_KEY
+
+databases:
+  - name: reminda-db
+    region: virginia
+    plan: basic-256mb
+    postgresMajorVersion: "18"
+    diskSizeGB: 15
+    storageAutoscalingEnabled: false
+
+envVarGroups:
+  - name: reminda-shared
+    envVars:
+      - key: APP_ENV
+        value: production
+
+      - key: TZ
+        value: America/Sao_Paulo
+
+      - key: LOG_LEVEL
+        value: INFO
+
+      - key: APP_NAME
+        value: reminda
+
+      - key: FRONTEND_BASE_URL
+        value: https://app.example.com
+
+      - key: API_BASE_URL
+        value: https://api.example.com
