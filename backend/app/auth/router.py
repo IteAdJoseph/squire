@@ -48,10 +48,10 @@ def login(body: LoginIn, db: Session = Depends(get_db)) -> TokenOut:
     billing = db.scalar(
         select(BillingAccount).where(BillingAccount.tenant_id == tenant.id)
     )
-    if billing is not None and billing.billing_status in _BLOCKED_BILLING:
+    if billing is None or billing.billing_status in _BLOCKED_BILLING:
         raise HTTPException(
             status_code=status.HTTP_403_FORBIDDEN,
-            detail=f"Acesso bloqueado: conta {billing.billing_status.value}",
+            detail="Acesso bloqueado: verifique o status da conta",
         )
 
     return TokenOut(access_token=create_access_token(str(user.id), str(tenant.id)))
