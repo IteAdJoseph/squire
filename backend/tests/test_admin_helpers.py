@@ -49,3 +49,17 @@ def test_due_day_clamped_next_month() -> None:
     today = date(2025, 1, 31)
     _, _, next_due = _next_due_date(30, _today=today)
     assert next_due == date(2025, 2, 28)
+
+
+def test_advance_on_due_day_advances_to_next_month() -> None:
+    """advance=True when today==due_day → next_due must be next month, not today"""
+    today = date(2025, 3, 15)
+    _, _, next_due = _next_due_date(15, _today=today, advance=True)
+    assert next_due == date(2025, 4, 15)
+
+
+def test_advance_before_due_day_keeps_same_month() -> None:
+    """advance=True when today < due_day → next_due still this month"""
+    today = date(2025, 3, 5)
+    _, _, next_due = _next_due_date(15, _today=today, advance=True)
+    assert next_due == date(2025, 3, 15)

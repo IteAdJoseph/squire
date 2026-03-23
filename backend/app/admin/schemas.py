@@ -29,10 +29,18 @@ class CreateUserIn(BaseModel):
 
 class CreateBillingIn(BaseModel):
     plan: str
-    monthly_price: Decimal
+    monthly_price: Annotated[Decimal, Field(ge=0)]
     due_day: int
     grace_days: int = 5
     provider: BillingProvider = BillingProvider.manual_pix
+    billing_status: BillingStatus = BillingStatus.trial
+
+    @field_validator("billing_status")
+    @classmethod
+    def validate_billing_status(cls, v: BillingStatus) -> BillingStatus:
+        if v not in {BillingStatus.trial, BillingStatus.active}:
+            raise ValueError("billing_status deve ser 'trial' ou 'active'")
+        return v
 
     @field_validator("due_day")
     @classmethod

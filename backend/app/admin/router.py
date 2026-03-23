@@ -38,13 +38,17 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 def _next_due_date(
-    due_day: int, *, _today: date | None = None
+    due_day: int, *, _today: date | None = None, advance: bool = False
 ) -> tuple[date, date, date]:
     """Return (period_start, period_end, next_due_date) for a billing setup.
 
+    ``advance=True`` shifts the reference day by +1 so a payment made ON the
+    due day produces next month's cycle, not the current one.
     Uses ``_today`` to allow deterministic unit-testing without patching.
     """
     today = _today if _today is not None else date.today()
+    if advance:
+        today = today + timedelta(days=1)
     year, month = today.year, today.month
 
     last_day = calendar.monthrange(year, month)[1]
@@ -221,6 +225,7 @@ def create_billing(
         due_day=body.due_day,
         grace_days=body.grace_days,
         provider=body.provider,
+        billing_status=body.billing_status,
         current_period_start=period_start,
         current_period_end=period_end,
         next_due_date=next_due,
@@ -330,7 +335,7 @@ def record_payment(
         )
     )
     old_status = billing.billing_status
-    period_start, period_end, next_due = _next_due_date(billing.due_day)
+    period_start, period_end, next_due = _next_due_date(billing.due_day, advance=True)
     billing.current_period_start = period_start  # type: ignore[assignment]
     billing.current_period_end = period_end  # type: ignore[assignment]
     billing.next_due_date = next_due  # type: ignore[assignment]
