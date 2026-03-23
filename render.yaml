@@ -154,6 +154,24 @@ services:
           name: reminda-api
           envVarKey: SECRET_KEY
 
+  - type: web
+    name: reminda-frontend
+    env: static
+    region: virginia
+    buildCommand: cd frontend && npm ci && npm run build
+    staticPublishPath: frontend/dist
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+    envVars:
+      - key: VITE_API_URL
+        fromService:
+          type: web
+          name: reminda-api
+          property: host
+          envVarKey: RENDER_EXTERNAL_URL
+
 databases:
   - name: reminda-db
     region: virginia
