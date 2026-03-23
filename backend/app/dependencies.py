@@ -7,10 +7,11 @@ from jwt import PyJWTError
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.config import settings
 from app.core.security import decode_access_token
 from app.database import get_db
 from app.models.billing import BillingAccount
-from app.models.enums import AccessStatus, BillingStatus
+from app.models.enums import AccessStatus, BillingStatus, UserRole
 from app.models.tenant import Tenant
 from app.models.user import User
 
@@ -66,5 +67,25 @@ def require_active_tenant(
     return current_user
 
 
+def require_admin(
+    current_user: Annotated[User, Depends(get_current_user)],
+    db: Session = Depends(get_db),
+) -> User:
+    """Restringe acesso a usuários do tenant administrador com role=owner."""
+    tenant = db.get(Tenant, current_user.tenant_id)
+    if tenant is None or tenant.slug != settings.admin_tenant_slug:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito a administradores",
+        )
+    if current_user.role != UserRole.owner:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Acesso restrito a administradores",
+        )
+    return current_user
+
+
 CurrentUser = Annotated[User, Depends(get_current_user)]
 ActiveTenantUser = Annotated[User, Depends(require_active_tenant)]
+AdminUser = Annotated[User, Depends(require_admin)]

@@ -20,6 +20,7 @@ class Settings(BaseSettings):
     secret_key: str = "dev-secret-key-change-in-production"
     encryption_key: str = "dev-encryption-key-change-in-production"
     access_token_expire_minutes: int = 60 * 24  # 24 h
+    admin_tenant_slug: str = "reminda-admin"
 
     # WhatsApp (Meta Cloud API)
     whatsapp_access_token: str = ""
