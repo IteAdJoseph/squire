@@ -353,6 +353,35 @@ Responsabilidades:
 
 ---
 
+## Frontend
+
+O MVP inclui um frontend web progressivo (PWA) para o admin do tenant operar o sistema no dia a dia pelo celular ou desktop, sem depender de app nativo.
+
+**Stack:** React 18 + TypeScript + Vite + vite-plugin-pwa
+**Localização no repo:** `frontend/`
+**Deploy:** Render Static Site (configurado no `render.yaml`)
+
+### Escopo do frontend MVP
+
+| Tela                        | Descrição                                              | UC coberto       |
+|-----------------------------|--------------------------------------------------------|------------------|
+| Login                       | Autenticação com username/senha do tenant              | UC-04            |
+| Dashboard / Agenda do dia   | Lista de agendamentos do dia com status                | UC-07            |
+| Clientes — lista + cadastro | Gerenciar clientes finais do tenant                    | UC-05            |
+| Serviços — lista + cadastro | Gerenciar serviços do tenant                           | UC-06            |
+| Novo agendamento            | Selecionar cliente, serviço, data e hora               | UC-07            |
+| Detalhe do agendamento      | Ver cobrança, confirmar pagamento, concluir, cancelar  | UC-08/09/11/12   |
+| Admin — gestão de tenants   | Criar tenant, usuário, billing; registrar pagamento    | UC-01/02/03/14   |
+
+### Fora do escopo do frontend MVP
+
+- Histórico financeiro / relatórios
+- Configurações avançadas de conta
+- Notificações push (além do status de lembrete)
+- Gestão de múltiplos usuários por tenant
+
+---
+
 ## Fora do Escopo do MVP
 
 - Integração Pix automática com webhook (pagamento confirmado manualmente)
@@ -362,7 +391,6 @@ Responsabilidades:
 - Conciliação financeira
 - Multi-unidade complexa
 - App mobile nativo
-- Frontend (o MVP entrega apenas a API)
 
 ---
 
