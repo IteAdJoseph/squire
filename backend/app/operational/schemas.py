@@ -1,3 +1,4 @@
+import re
 import uuid
 from datetime import date, datetime
 from decimal import Decimal
@@ -7,11 +8,21 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 from app.models.enums import AppointmentStatus, ChargeStatus, ChargeType
 
+E164_PHONE_RE = re.compile(r"^\+[1-9]\d{1,14}$")
+
 
 class CustomerCreateIn(BaseModel):
     name: str
     phone: str
     notes: str | None = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str) -> str:
+        normalized = value.strip()
+        if not E164_PHONE_RE.fullmatch(normalized):
+            raise ValueError("phone deve estar no formato E.164 (ex: +5511999999999)")
+        return normalized
 
 
 class CustomerOut(BaseModel):
