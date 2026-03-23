@@ -38,17 +38,14 @@ DbSession = Annotated[Session, Depends(get_db)]
 
 
 def _next_due_date(
-    due_day: int, *, _today: date | None = None, advance: bool = False
+    due_day: int, *, _today: date | None = None
 ) -> tuple[date, date, date]:
-    """Return (period_start, period_end, next_due_date) for a billing setup.
+    """Return (period_start, period_end, next_due_date) for initial billing setup.
 
-    ``advance=True`` shifts the reference day by +1 so a payment made ON the
-    due day produces next month's cycle, not the current one.
     Uses ``_today`` to allow deterministic unit-testing without patching.
+    For advancing an existing cycle after payment use _advance_billing_cycle.
     """
     today = _today if _today is not None else date.today()
-    if advance:
-        today = today + timedelta(days=1)
     year, month = today.year, today.month
 
     last_day = calendar.monthrange(year, month)[1]
@@ -67,6 +64,30 @@ def _next_due_date(
     period_start = today
     period_end = next_due - timedelta(days=1)
     return period_start, period_end, next_due
+
+
+def _advance_billing_cycle(
+    current_due: date,
+    due_day: int,
+    *,
+    _today: date | None = None,
+) -> tuple[date, date, date]:
+    """Avança o ciclo de cobrança exatamente 1 mês a partir de current_due.
+
+    Usado em record_payment: cada pagamento quita 1 ciclo mensal.
+    O novo next_due_date é sempre 1 mês após billing.next_due_date,
+    independente de quando o pagamento foi recebido (adiantado, em dia
+    ou atrasado). _today permite testes determinísticos.
+    """
+    today = _today if _today is not None else date.today()
+    year, month = current_due.year, current_due.month
+    if month == 12:
+        ny, nm = year + 1, 1
+    else:
+        ny, nm = year, month + 1
+    ld = calendar.monthrange(ny, nm)[1]
+    next_due = date(ny, nm, min(due_day, ld))
+    return today, next_due - timedelta(days=1), next_due
 
 
 def _audit(
@@ -335,7 +356,10 @@ def record_payment(
         )
     )
     old_status = billing.billing_status
-    period_start, period_end, next_due = _next_due_date(billing.due_day, advance=True)
+    period_start, period_end, next_due = _advance_billing_cycle(
+        billing.next_due_date,  # type: ignore[arg-type]
+        billing.due_day,
+    )
     billing.current_period_start = period_start  # type: ignore[assignment]
     billing.current_period_end = period_end  # type: ignore[assignment]
     billing.next_due_date = next_due  # type: ignore[assignment]
@@ -394,7 +418,8 @@ def cancel_tenant(
     )
     if billing is not None:
         billing.billing_status = BillingStatus.cancelled
-        billing.cancelled_at = datetime.now(UTC)  # type: ignore[assignment]
+        if billing.cancelled_at is None:
+            billing.cancelled_at = datetime.now(UTC)  # type: ignore[assignment]
     db.flush()
     _audit(
         db,
