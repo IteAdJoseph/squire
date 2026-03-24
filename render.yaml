@@ -157,7 +157,6 @@ services:
   - type: web
     name: reminda-frontend
     env: static
-    region: virginia
     buildCommand: cd frontend && npm ci --legacy-peer-deps && npm run build
     staticPublishPath: frontend/dist
     routes:
