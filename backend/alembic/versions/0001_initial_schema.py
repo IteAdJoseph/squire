@@ -9,6 +9,7 @@ Create Date: 2026-03-23
 from collections.abc import Sequence
 
 import sqlalchemy as sa
+from sqlalchemy.dialects.postgresql import ENUM as PgEnum
 
 from alembic import op
 
@@ -52,7 +53,7 @@ def upgrade() -> None:
         sa.Column("slug", sa.String, nullable=False),
         sa.Column(
             "access_status",
-            sa.Enum(name="access_status_enum", create_type=False),
+            PgEnum(name="access_status_enum", create_type=False),
             nullable=False,
             server_default="enabled",
         ),
@@ -85,7 +86,7 @@ def upgrade() -> None:
         sa.Column("hashed_password", sa.String, nullable=False),
         sa.Column(
             "role",
-            sa.Enum(name="user_role_enum", create_type=False),
+            PgEnum(name="user_role_enum", create_type=False),
             nullable=False,
         ),
         sa.Column("is_active", sa.Boolean, nullable=False, server_default=sa.true()),
@@ -121,13 +122,13 @@ def upgrade() -> None:
         sa.Column("grace_days", sa.Integer, nullable=False, server_default="5"),
         sa.Column(
             "billing_status",
-            sa.Enum(name="billing_status_enum", create_type=False),
+            PgEnum(name="billing_status_enum", create_type=False),
             nullable=False,
             server_default="trial",
         ),
         sa.Column(
             "provider",
-            sa.Enum(name="billing_provider_enum", create_type=False),
+            PgEnum(name="billing_provider_enum", create_type=False),
             nullable=False,
             server_default="manual_pix",
         ),
@@ -271,7 +272,7 @@ def upgrade() -> None:
         sa.Column("balance_amount", sa.Numeric(10, 2), nullable=False),
         sa.Column(
             "status",
-            sa.Enum(name="appointment_status_enum", create_type=False),
+            PgEnum(name="appointment_status_enum", create_type=False),
             nullable=False,
             server_default="draft",
         ),
@@ -313,13 +314,13 @@ def upgrade() -> None:
         ),
         sa.Column(
             "type",
-            sa.Enum(name="charge_type_enum", create_type=False),
+            PgEnum(name="charge_type_enum", create_type=False),
             nullable=False,
         ),
         sa.Column("amount", sa.Numeric(10, 2), nullable=False),
         sa.Column(
             "status",
-            sa.Enum(name="charge_status_enum", create_type=False),
+            PgEnum(name="charge_status_enum", create_type=False),
             nullable=False,
             server_default="pending",
         ),
@@ -365,7 +366,7 @@ def upgrade() -> None:
         sa.Column("sent_at", sa.DateTime(timezone=True), nullable=True),
         sa.Column(
             "status",
-            sa.Enum(name="reminder_status_enum", create_type=False),
+            PgEnum(name="reminder_status_enum", create_type=False),
             nullable=False,
             server_default="pending",
         ),
