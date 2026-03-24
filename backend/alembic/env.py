@@ -2,6 +2,7 @@ from logging.config import fileConfig
 
 from sqlalchemy import engine_from_config, pool, text
 from sqlalchemy.engine import make_url
+from sqlalchemy.exc import OperationalError
 
 import app.models  # noqa: F401 — registers all models on Base.metadata
 from alembic import context
@@ -22,25 +23,32 @@ def get_url() -> str:
 
 
 def ensure_database_exists(url: str) -> None:
-    """Create the target database if it does not exist yet."""
-    parsed = make_url(url)
-    db_name = parsed.database
-    # Connect to the default 'postgres' maintenance database
-    admin_url = parsed.set(database="postgres")
-    engine = engine_from_config(
-        {"sqlalchemy.url": admin_url.render_as_string(hide_password=False)},
-        prefix="sqlalchemy.",
-        poolclass=pool.NullPool,
-    )
-    with engine.connect() as conn:
-        conn.execute(text("COMMIT"))  # exit any open transaction
-        exists = conn.scalar(
-            text("SELECT 1 FROM pg_database WHERE datname = :name"),
-            {"name": db_name},
+    """Create the target database if it does not exist yet.
+
+    Silently skips if the maintenance database is inaccessible (e.g. managed
+    cloud Postgres where the database is pre-created by the platform).
+    """
+    try:
+        parsed = make_url(url)
+        db_name = parsed.database
+        admin_url = parsed.set(database="postgres")
+        engine = engine_from_config(
+            {"sqlalchemy.url": admin_url.render_as_string(hide_password=False)},
+            prefix="sqlalchemy.",
+            poolclass=pool.NullPool,
         )
-        if not exists:
-            conn.execute(text(f'CREATE DATABASE "{db_name}"'))
-    engine.dispose()
+        with engine.connect() as conn:
+            conn.execute(text("COMMIT"))  # exit any open transaction
+            exists = conn.scalar(
+                text("SELECT 1 FROM pg_database WHERE datname = :name"),
+                {"name": db_name},
+            )
+            if not exists:
+                conn.execute(text(f'CREATE DATABASE "{db_name}"'))
+        engine.dispose()
+    except OperationalError:
+        # Maintenance database inaccessible — target database already exists.
+        pass
 
 
 def run_migrations_offline() -> None:

@@ -158,7 +158,7 @@ services:
     name: reminda-frontend
     env: static
     region: virginia
-    buildCommand: cd frontend && npm ci && npm run build
+    buildCommand: cd frontend && npm ci --legacy-peer-deps && npm run build
     staticPublishPath: frontend/dist
     routes:
       - type: rewrite
@@ -166,11 +166,7 @@ services:
         destination: /index.html
     envVars:
       - key: VITE_API_URL
-        fromService:
-          type: web
-          name: reminda-api
-          property: host
-          envVarKey: RENDER_EXTERNAL_URL
+        value: https://reminda-api.onrender.com
 
 databases:
   - name: reminda-db
@@ -196,7 +192,7 @@ envVarGroups:
         value: reminda
 
       - key: FRONTEND_BASE_URL
-        value: https://app.example.com
+        value: https://reminda-frontend.onrender.com
 
       - key: API_BASE_URL
-        value: https://api.example.com
+        value: https://reminda-api.onrender.com
