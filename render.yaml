@@ -24,7 +24,7 @@ services:
     name: reminda-api
     runtime: python
     region: virginia
-    plan: starter
+    plan: free
     buildCommand: |
       cd backend
       python -m pip install --upgrade pip
@@ -75,57 +75,12 @@ services:
       - key: PIX_PROVIDER_WEBHOOK_SECRET
         sync: false
 
-  - type: worker
-    name: reminda-worker
-    runtime: python
-    region: virginia
-    plan: starter
-    buildCommand: |
-      cd backend
-      python -m pip install --upgrade pip
-      pip install -r requirements.txt -r requirements-dev.txt
-    startCommand: |
-      cd backend
-      python -m app.worker
-    autoDeployTrigger: checksPass
-    envVars:
-      - fromGroup: reminda-shared
-
-      - key: DATABASE_URL
-        fromDatabase:
-          name: reminda-db
-          property: connectionString
-
-      - key: REDIS_URL
-        fromService:
-          type: keyvalue
-          name: reminda-cache
-          property: connectionString
-
-      - key: SECRET_KEY
-        fromService:
-          type: web
-          name: reminda-api
-          envVarKey: SECRET_KEY
-
-      - key: ENCRYPTION_KEY
-        fromService:
-          type: web
-          name: reminda-api
-          envVarKey: ENCRYPTION_KEY
-
-      - key: WHATSAPP_ACCESS_TOKEN
-        sync: false
-
-      - key: PIX_PROVIDER_API_KEY
-        sync: false
-
   - type: cron
     name: reminda-scheduler
     runtime: python
     region: virginia
-    plan: starter
-    schedule: "*/5 * * * *"
+    plan: free
+    schedule: "0 * * * *"
     buildCommand: |
       cd backend
       python -m pip install --upgrade pip
