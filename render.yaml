@@ -16,7 +16,7 @@ services:
   - type: keyvalue
     name: reminda-cache
     region: virginia
-    plan: starter
+    plan: free
     ipAllowList: []
     maxmemoryPolicy: allkeys-lru
 
@@ -171,10 +171,8 @@ services:
 databases:
   - name: reminda-db
     region: virginia
-    plan: basic-256mb
-    postgresMajorVersion: "18"
-    diskSizeGB: 15
-    storageAutoscalingEnabled: false
+    plan: free
+    postgresMajorVersion: "16"
 
 envVarGroups:
   - name: reminda-shared
