@@ -1,26 +1,28 @@
+# ruff: noqa: E402, I001
+# DATABASE_URL must be set before app imports so that app.config.Settings()
+# and alembic env.py both pick up the test database URL.
 import os
-import uuid
-from collections.abc import Generator
-from datetime import date, timedelta
-from decimal import Decimal
 
-# Must be set before app imports so that app.config.Settings() and alembic
-# env.py both pick up the test database URL.
 _TEST_DB_URL = os.environ.get(
     "TEST_DATABASE_URL", "postgresql://localhost/reminda_test"
 )
 os.environ["DATABASE_URL"] = _TEST_DB_URL
 
-import pytest  # noqa: E402
-from alembic import command  # noqa: E402
-from alembic.config import Config  # noqa: E402
-from sqlalchemy import create_engine  # noqa: E402
-from sqlalchemy.orm import Session  # noqa: E402
-from starlette.testclient import TestClient  # noqa: E402
+import uuid
+from collections.abc import Generator
+from datetime import date, timedelta
+from decimal import Decimal
 
-from app.core.security import create_access_token, hash_password  # noqa: E402
-from app.database import get_db  # noqa: E402
-from app.main import app  # noqa: E402
+import pytest
+from alembic import command
+from alembic.config import Config
+from sqlalchemy import create_engine
+from sqlalchemy.orm import Session
+from starlette.testclient import TestClient
+
+from app.core.security import create_access_token, hash_password
+from app.database import get_db
+from app.main import app
 from app.models.billing import BillingAccount
 from app.models.enums import BillingProvider, BillingStatus, UserRole
 from app.models.tenant import Tenant

@@ -49,7 +49,9 @@ def svc_free(client: TestClient, auth_headers: dict) -> dict:
 
 
 @pytest.fixture
-def appt_awaiting(client: TestClient, auth_headers: dict, customer: dict, svc_deposit: dict) -> dict:
+def appt_awaiting(
+    client: TestClient, auth_headers: dict, customer: dict, svc_deposit: dict
+) -> dict:
     r = client.post(
         "/appointments",
         json={
@@ -65,7 +67,9 @@ def appt_awaiting(client: TestClient, auth_headers: dict, customer: dict, svc_de
 
 
 @pytest.fixture
-def appt_confirmed(client: TestClient, auth_headers: dict, customer: dict, svc_free: dict) -> dict:
+def appt_confirmed(
+    client: TestClient, auth_headers: dict, customer: dict, svc_free: dict
+) -> dict:
     r = client.post(
         "/appointments",
         json={
@@ -81,7 +85,9 @@ def appt_confirmed(client: TestClient, auth_headers: dict, customer: dict, svc_f
 
 
 @pytest.fixture
-def appt_completed(client: TestClient, auth_headers: dict, appt_confirmed: dict) -> dict:
+def appt_completed(
+    client: TestClient, auth_headers: dict, appt_confirmed: dict
+) -> dict:
     r = client.post(
         f"/appointments/{appt_confirmed['id']}/complete", headers=auth_headers
     )
@@ -175,7 +181,9 @@ def test_create_service_deposit_exceeds_total(
     assert r.status_code == 422
 
 
-def test_list_services(client: TestClient, auth_headers: dict, svc_deposit: dict) -> None:
+def test_list_services(
+    client: TestClient, auth_headers: dict, svc_deposit: dict
+) -> None:
     r = client.get("/services", headers=auth_headers)
     assert r.status_code == 200
     ids = [s["id"] for s in r.json()]
@@ -375,7 +383,11 @@ def test_create_balance_charge_zero_balance(
     cust = r.json()
     r = client.post(
         "/appointments",
-        json={"customer_id": cust["id"], "service_id": svc["id"], "scheduled_at": SCHEDULED_AT_2},
+        json={
+            "customer_id": cust["id"],
+            "service_id": svc["id"],
+            "scheduled_at": SCHEDULED_AT_2,
+        },
         headers=auth_headers,
     )
     appt = r.json()

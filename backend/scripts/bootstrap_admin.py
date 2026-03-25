@@ -11,6 +11,7 @@ Idempotente: não recria registros que já existem.
 
 import sys
 import uuid
+from datetime import date
 
 import psycopg2
 import psycopg2.extras
@@ -37,7 +38,8 @@ def main(database_url: str) -> None:
         if row is None:
             tenant_id = str(uuid.uuid4())
             cur.execute(
-                "INSERT INTO tenants (id, name, slug, access_status) VALUES (%s, %s, %s, 'enabled')",
+                "INSERT INTO tenants (id, name, slug, access_status)"
+                " VALUES (%s, %s, %s, 'enabled')",
                 (tenant_id, ADMIN_TENANT_NAME, ADMIN_TENANT_SLUG),
             )
             print(f"Tenant criado  : slug={ADMIN_TENANT_SLUG}  id={tenant_id}")
@@ -55,18 +57,42 @@ def main(database_url: str) -> None:
             hashed = _pwd_ctx.hash(ADMIN_PASSWORD)
             cur.execute(
                 """
-                INSERT INTO users (id, tenant_id, email, username, hashed_password, role, is_active)
+                INSERT INTO users
+                    (id, tenant_id, email, username, hashed_password, role, is_active)
                 VALUES (%s, %s, %s, %s, %s, 'owner', true)
                 """,
                 (user_id, tenant_id, ADMIN_EMAIL, ADMIN_USERNAME, hashed),
             )
-            conn.commit()
             print(f"Usuario criado : username={ADMIN_USERNAME}  email={ADMIN_EMAIL}")
             print(f"Senha inicial  : {ADMIN_PASSWORD}")
             print("ATENCAO        : troque a senha apos o primeiro login.")
         else:
             print(f"Usuario ja existe: username={ADMIN_USERNAME}")
-            conn.rollback()
+
+        # 3. BillingAccount do tenant admin (necessário para o login não ser bloqueado)
+        cur.execute(
+            "SELECT id FROM billing_accounts WHERE tenant_id = %s", (tenant_id,)
+        )
+        if cur.fetchone() is None:
+            today = date.today()
+            far_future = date(2099, 12, 31)
+            cur.execute(
+                """
+                INSERT INTO billing_accounts
+                    (id, tenant_id, plan, monthly_price, due_day,
+                     billing_status, provider,
+                     current_period_start, current_period_end, next_due_date)
+                VALUES (%s, %s, 'admin', 0.00, 1,
+                        'trial', 'manual_pix',
+                        %s, %s, %s)
+                """,
+                (str(uuid.uuid4()), tenant_id, today, far_future, far_future),
+            )
+            print("BillingAccount criado: plan=admin  status=trial  expira=2099-12-31")
+        else:
+            print("BillingAccount ja existe")
+
+        conn.commit()
 
     except Exception:
         conn.rollback()
