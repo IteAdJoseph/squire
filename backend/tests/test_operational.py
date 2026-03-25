@@ -418,9 +418,7 @@ def test_create_balance_charge_already_exists(
 def test_cancel_appointment_ok(
     client: TestClient, auth_headers: dict, appt_awaiting: dict, deposit_charge: dict
 ) -> None:
-    r = client.post(
-        f"/appointments/{appt_awaiting['id']}/cancel", headers=auth_headers
-    )
+    r = client.post(f"/appointments/{appt_awaiting['id']}/cancel", headers=auth_headers)
     assert r.status_code == 200
     assert r.json()["status"] == "cancelled"
 

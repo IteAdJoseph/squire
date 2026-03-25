@@ -104,7 +104,7 @@ def main(database_url: str) -> None:
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
-        print("Uso: python bootstrap_admin.py \"postgresql://user:pass@host/db\"")
+        print('Uso: python bootstrap_admin.py "postgresql://user:pass@host/db"')
         sys.exit(1)
     main(sys.argv[1])
     sys.exit(0)
