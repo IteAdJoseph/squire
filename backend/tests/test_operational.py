@@ -497,9 +497,7 @@ def test_update_customer_invalid_phone(
     assert r.status_code == 422
 
 
-def test_update_customer_not_found(
-    client: TestClient, auth_headers: dict
-) -> None:
+def test_update_customer_not_found(client: TestClient, auth_headers: dict) -> None:
     r = client.patch(
         "/customers/00000000-0000-0000-0000-000000000000",
         json={"name": "X"},
@@ -552,9 +550,7 @@ def test_deleted_customer_get_returns_404(
     assert r.status_code == 404
 
 
-def test_delete_customer_not_found(
-    client: TestClient, auth_headers: dict
-) -> None:
+def test_delete_customer_not_found(client: TestClient, auth_headers: dict) -> None:
     r = client.delete(
         "/customers/00000000-0000-0000-0000-000000000000", headers=auth_headers
     )
@@ -602,9 +598,7 @@ def test_update_service_deposit_exceeds_total(
     assert r.status_code == 422
 
 
-def test_update_service_not_found(
-    client: TestClient, auth_headers: dict
-) -> None:
+def test_update_service_not_found(client: TestClient, auth_headers: dict) -> None:
     r = client.patch(
         "/services/00000000-0000-0000-0000-000000000000",
         json={"name": "X"},
@@ -643,9 +637,7 @@ def test_deleted_service_get_returns_404(
     assert r.status_code == 404
 
 
-def test_delete_service_not_found(
-    client: TestClient, auth_headers: dict
-) -> None:
+def test_delete_service_not_found(client: TestClient, auth_headers: dict) -> None:
     r = client.delete(
         "/services/00000000-0000-0000-0000-000000000000", headers=auth_headers
     )
