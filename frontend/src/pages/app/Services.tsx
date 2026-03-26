@@ -1,5 +1,11 @@
 import { type FormEvent, useEffect, useState } from 'react'
-import { createService, listServices, type ServiceOut } from '../../api/services'
+import {
+  type ServiceOut,
+  createService,
+  deleteService,
+  listServices,
+  updateService,
+} from '../../api/services'
 import styles from './Services.module.css'
 
 function formatBRL(value: string | number): string {
@@ -15,18 +21,30 @@ function formatDuration(minutes: number): string {
   return m === 0 ? `${h}h` : `${h}h ${m}min`
 }
 
+function extractError(err: unknown): string {
+  const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
+  return typeof detail === 'string' ? detail : 'Verifique os dados e tente novamente.'
+}
+
 export function Services() {
   const [items, setItems] = useState<ServiceOut[]>([])
   const [loading, setLoading] = useState(true)
   const [pageError, setPageError] = useState<string | null>(null)
 
+  // create / edit modal
   const [showModal, setShowModal] = useState(false)
+  const [editingService, setEditingService] = useState<ServiceOut | null>(null)
   const [name, setName] = useState('')
   const [duration, setDuration] = useState('')
   const [totalPrice, setTotalPrice] = useState('')
   const [depositAmount, setDepositAmount] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [formError, setFormError] = useState<string | null>(null)
+
+  // delete confirm modal
+  const [deletingService, setDeletingService] = useState<ServiceOut | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [deleteError, setDeleteError] = useState<string | null>(null)
 
   useEffect(() => {
     listServices()
@@ -36,15 +54,21 @@ export function Services() {
   }, [])
 
   useEffect(() => {
-    if (!showModal) return
+    if (!showModal && !deletingService) return
     function onKey(e: KeyboardEvent) {
-      if (e.key === 'Escape') closeModal()
+      if (e.key === 'Escape') {
+        if (!submitting && !deleting) {
+          setShowModal(false)
+          setDeletingService(null)
+        }
+      }
     }
     document.addEventListener('keydown', onKey)
     return () => document.removeEventListener('keydown', onKey)
-  }, [showModal])
+  }, [showModal, deletingService, submitting, deleting])
 
-  function openModal() {
+  function openCreate() {
+    setEditingService(null)
     setName('')
     setDuration('')
     setTotalPrice('')
@@ -53,9 +77,24 @@ export function Services() {
     setShowModal(true)
   }
 
+  function openEdit(s: ServiceOut) {
+    setEditingService(s)
+    setName(s.name)
+    setDuration(String(s.duration_minutes))
+    setTotalPrice(parseFloat(s.total_price).toFixed(2).replace('.', ','))
+    setDepositAmount(
+      parseFloat(s.deposit_amount) > 0
+        ? parseFloat(s.deposit_amount).toFixed(2).replace('.', ',')
+        : '',
+    )
+    setFormError(null)
+    setShowModal(true)
+  }
+
   function closeModal() {
     if (submitting) return
     setShowModal(false)
+    setEditingService(null)
   }
 
   async function handleSubmit(e: FormEvent) {
@@ -76,19 +115,43 @@ export function Services() {
 
     setSubmitting(true)
     try {
-      const created = await createService({
-        name,
-        duration_minutes: parseInt(duration, 10),
-        total_price: total,
-        deposit_amount: deposit,
-      })
-      setItems((prev) => [created, ...prev])
+      if (editingService) {
+        const updated = await updateService(editingService.id, {
+          name,
+          duration_minutes: parseInt(duration, 10),
+          total_price: total,
+          deposit_amount: deposit,
+        })
+        setItems((prev) => prev.map((s) => (s.id === updated.id ? updated : s)))
+      } else {
+        const created = await createService({
+          name,
+          duration_minutes: parseInt(duration, 10),
+          total_price: total,
+          deposit_amount: deposit,
+        })
+        setItems((prev) => [created, ...prev])
+      }
       setShowModal(false)
-    } catch (err: unknown) {
-      const detail = (err as { response?: { data?: { detail?: unknown } } })?.response?.data?.detail
-      setFormError(typeof detail === 'string' ? detail : 'Verifique os dados e tente novamente.')
+    } catch (err) {
+      setFormError(extractError(err))
     } finally {
       setSubmitting(false)
+    }
+  }
+
+  async function handleDelete() {
+    if (!deletingService) return
+    setDeleteError(null)
+    setDeleting(true)
+    try {
+      await deleteService(deletingService.id)
+      setItems((prev) => prev.filter((s) => s.id !== deletingService.id))
+      setDeletingService(null)
+    } catch (err) {
+      setDeleteError(extractError(err))
+    } finally {
+      setDeleting(false)
     }
   }
 
@@ -101,7 +164,7 @@ export function Services() {
     <div className={styles.page}>
       <div className={styles.header}>
         <h1 className={styles.title}>Serviços</h1>
-        <button className={styles.btnNew} onClick={openModal}>
+        <button className={styles.btnNew} onClick={openCreate}>
           + Novo serviço
         </button>
       </div>
@@ -119,7 +182,7 @@ export function Services() {
       {!loading && !pageError && items.length === 0 && (
         <div className={styles.empty}>
           <p className={styles.emptyText}>Nenhum serviço cadastrado ainda.</p>
-          <button className={styles.btnNew} onClick={openModal}>
+          <button className={styles.btnNew} onClick={openCreate}>
             Cadastrar primeiro serviço
           </button>
         </div>
@@ -129,30 +192,54 @@ export function Services() {
         <ul className={styles.list}>
           {items.map((s) => (
             <li key={s.id} className={styles.card}>
-              <div className={styles.cardTop}>
-                <span className={styles.cardName}>{s.name}</span>
-                <span className={styles.cardDuration}>{formatDuration(s.duration_minutes)}</span>
+              <div className={styles.cardBody}>
+                <div className={styles.cardTop}>
+                  <span className={styles.cardName}>{s.name}</span>
+                  <span className={styles.cardDuration}>{formatDuration(s.duration_minutes)}</span>
+                </div>
+                <div className={styles.cardBottom}>
+                  <span className={styles.cardPrice}>{formatBRL(s.total_price)}</span>
+                  {parseFloat(s.deposit_amount) > 0 ? (
+                    <span className={styles.tagDeposit}>
+                      Sinal: {formatBRL(s.deposit_amount)}
+                    </span>
+                  ) : (
+                    <span className={styles.tagNoDeposit}>Sem sinal</span>
+                  )}
+                </div>
               </div>
-              <div className={styles.cardBottom}>
-                <span className={styles.cardPrice}>{formatBRL(s.total_price)}</span>
-                {parseFloat(s.deposit_amount) > 0 ? (
-                  <span className={styles.tagDeposit}>
-                    Sinal: {formatBRL(s.deposit_amount)}
-                  </span>
-                ) : (
-                  <span className={styles.tagNoDeposit}>Sem sinal</span>
-                )}
+              <div className={styles.cardActions}>
+                <button
+                  className={styles.btnIcon}
+                  title="Editar"
+                  onClick={() => openEdit(s)}
+                >
+                  ✎
+                </button>
+                <button
+                  className={`${styles.btnIcon} ${styles.btnIconDanger}`}
+                  title="Remover"
+                  onClick={() => {
+                    setDeleteError(null)
+                    setDeletingService(s)
+                  }}
+                >
+                  ✕
+                </button>
               </div>
             </li>
           ))}
         </ul>
       )}
 
+      {/* ─── Create / Edit modal ─── */}
       {showModal && (
         <div className={styles.overlay} onClick={closeModal}>
           <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
             <div className={styles.modalHeader}>
-              <h2 className={styles.modalTitle}>Novo serviço</h2>
+              <h2 className={styles.modalTitle}>
+                {editingService ? 'Editar serviço' : 'Novo serviço'}
+              </h2>
               <button className={styles.modalClose} onClick={closeModal} type="button">
                 ✕
               </button>
@@ -231,9 +318,60 @@ export function Services() {
               {formError && <div className={styles.error}>{formError}</div>}
 
               <button className={styles.submit} type="submit" disabled={submitting}>
-                {submitting ? 'Salvando...' : 'Salvar serviço'}
+                {submitting
+                  ? 'Salvando...'
+                  : editingService
+                    ? 'Salvar alterações'
+                    : 'Salvar serviço'}
               </button>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* ─── Delete confirm modal ─── */}
+      {deletingService && (
+        <div
+          className={styles.overlay}
+          onClick={() => {
+            if (!deleting) setDeletingService(null)
+          }}
+        >
+          <div className={styles.modal} onClick={(e) => e.stopPropagation()}>
+            <div className={styles.modalHeader}>
+              <h2 className={styles.modalTitle}>Remover serviço</h2>
+              <button
+                className={styles.modalClose}
+                onClick={() => setDeletingService(null)}
+                type="button"
+                disabled={deleting}
+              >
+                ✕
+              </button>
+            </div>
+            <div className={styles.deleteBody}>
+              <p className={styles.deleteText}>
+                Remover <strong>{deletingService.name}</strong>? Esta ação não pode ser
+                desfeita.
+              </p>
+              {deleteError && <div className={styles.error}>{deleteError}</div>}
+              <div className={styles.deleteActions}>
+                <button
+                  className={styles.btnCancel}
+                  onClick={() => setDeletingService(null)}
+                  disabled={deleting}
+                >
+                  Cancelar
+                </button>
+                <button
+                  className={styles.btnDelete}
+                  onClick={handleDelete}
+                  disabled={deleting}
+                >
+                  {deleting ? 'Removendo...' : 'Remover'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

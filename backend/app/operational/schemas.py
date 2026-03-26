@@ -37,6 +37,22 @@ class CustomerOut(BaseModel):
     created_at: datetime
 
 
+class CustomerUpdateIn(BaseModel):
+    name: str | None = None
+    phone: str | None = None
+    notes: str | None = None
+
+    @field_validator("phone")
+    @classmethod
+    def validate_phone(cls, value: str | None) -> str | None:
+        if value is None:
+            return None
+        normalized = value.strip()
+        if not E164_PHONE_RE.fullmatch(normalized):
+            raise ValueError("phone deve estar no formato E.164 (ex: +5511999999999)")
+        return normalized
+
+
 class ServiceCreateIn(BaseModel):
     name: str
     duration_minutes: Annotated[int, Field(gt=0)]
@@ -63,6 +79,13 @@ class ServiceOut(BaseModel):
     deposit_amount: Decimal
     is_active: bool
     created_at: datetime
+
+
+class ServiceUpdateIn(BaseModel):
+    name: str | None = None
+    duration_minutes: Annotated[int, Field(gt=0)] | None = None
+    total_price: Annotated[Decimal, Field(ge=0)] | None = None
+    deposit_amount: Annotated[Decimal, Field(ge=0)] | None = None
 
 
 class AppointmentCreateIn(BaseModel):

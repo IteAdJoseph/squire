@@ -438,6 +438,221 @@ def test_cancel_completed_appointment(
 
 
 # ---------------------------------------------------------------------------
+# PATCH /customers — update
+# ---------------------------------------------------------------------------
+
+
+def test_update_customer_name(
+    client: TestClient, auth_headers: dict, customer: dict
+) -> None:
+    r = client.patch(
+        f"/customers/{customer['id']}",
+        json={"name": "Ana Souza"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["name"] == "Ana Souza"
+    assert r.json()["phone"] == customer["phone"]
+
+
+def test_update_customer_phone(
+    client: TestClient, auth_headers: dict, customer: dict
+) -> None:
+    r = client.patch(
+        f"/customers/{customer['id']}",
+        json={"phone": "+5521987654321"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["phone"] == "+5521987654321"
+
+
+def test_update_customer_notes_to_none(
+    client: TestClient, auth_headers: dict, customer: dict
+) -> None:
+    # First set notes
+    client.patch(
+        f"/customers/{customer['id']}",
+        json={"notes": "alguma nota"},
+        headers=auth_headers,
+    )
+    # Then clear them
+    r = client.patch(
+        f"/customers/{customer['id']}",
+        json={"notes": None},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["notes"] is None
+
+
+def test_update_customer_invalid_phone(
+    client: TestClient, auth_headers: dict, customer: dict
+) -> None:
+    r = client.patch(
+        f"/customers/{customer['id']}",
+        json={"phone": "not-a-phone"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 422
+
+
+def test_update_customer_not_found(
+    client: TestClient, auth_headers: dict
+) -> None:
+    r = client.patch(
+        "/customers/00000000-0000-0000-0000-000000000000",
+        json={"name": "X"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 404
+
+
+def test_update_customer_tenant_isolation(
+    client: TestClient,
+    auth_headers: dict,
+    second_auth_headers: dict,
+    customer: dict,
+) -> None:
+    r = client.patch(
+        f"/customers/{customer['id']}",
+        json={"name": "Invasor"},
+        headers=second_auth_headers,
+    )
+    assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# DELETE /customers — soft-delete
+# ---------------------------------------------------------------------------
+
+
+def test_delete_customer(
+    client: TestClient, auth_headers: dict, customer: dict
+) -> None:
+    r = client.delete(f"/customers/{customer['id']}", headers=auth_headers)
+    assert r.status_code == 204
+
+
+def test_deleted_customer_not_in_list(
+    client: TestClient, auth_headers: dict, customer: dict
+) -> None:
+    client.delete(f"/customers/{customer['id']}", headers=auth_headers)
+    r = client.get("/customers", headers=auth_headers)
+    assert r.status_code == 200
+    ids = [c["id"] for c in r.json()]
+    assert customer["id"] not in ids
+
+
+def test_deleted_customer_get_returns_404(
+    client: TestClient, auth_headers: dict, customer: dict
+) -> None:
+    client.delete(f"/customers/{customer['id']}", headers=auth_headers)
+    r = client.get(f"/customers/{customer['id']}", headers=auth_headers)
+    assert r.status_code == 404
+
+
+def test_delete_customer_not_found(
+    client: TestClient, auth_headers: dict
+) -> None:
+    r = client.delete(
+        "/customers/00000000-0000-0000-0000-000000000000", headers=auth_headers
+    )
+    assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# PATCH /services — update
+# ---------------------------------------------------------------------------
+
+
+def test_update_service_name(
+    client: TestClient, auth_headers: dict, svc_deposit: dict
+) -> None:
+    r = client.patch(
+        f"/services/{svc_deposit['id']}",
+        json={"name": "Corte Degradê"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    assert r.json()["name"] == "Corte Degradê"
+
+
+def test_update_service_price(
+    client: TestClient, auth_headers: dict, svc_deposit: dict
+) -> None:
+    r = client.patch(
+        f"/services/{svc_deposit['id']}",
+        json={"total_price": "120.00"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 200
+    assert float(r.json()["total_price"]) == 120.0
+
+
+def test_update_service_deposit_exceeds_total(
+    client: TestClient, auth_headers: dict, svc_deposit: dict
+) -> None:
+    # svc_deposit has total=100, deposit=30 — try to set deposit > total
+    r = client.patch(
+        f"/services/{svc_deposit['id']}",
+        json={"deposit_amount": "200.00"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 422
+
+
+def test_update_service_not_found(
+    client: TestClient, auth_headers: dict
+) -> None:
+    r = client.patch(
+        "/services/00000000-0000-0000-0000-000000000000",
+        json={"name": "X"},
+        headers=auth_headers,
+    )
+    assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
+# DELETE /services — soft-delete
+# ---------------------------------------------------------------------------
+
+
+def test_delete_service(
+    client: TestClient, auth_headers: dict, svc_deposit: dict
+) -> None:
+    r = client.delete(f"/services/{svc_deposit['id']}", headers=auth_headers)
+    assert r.status_code == 204
+
+
+def test_deleted_service_not_in_list(
+    client: TestClient, auth_headers: dict, svc_deposit: dict
+) -> None:
+    client.delete(f"/services/{svc_deposit['id']}", headers=auth_headers)
+    r = client.get("/services", headers=auth_headers)
+    assert r.status_code == 200
+    ids = [s["id"] for s in r.json()]
+    assert svc_deposit["id"] not in ids
+
+
+def test_deleted_service_get_returns_404(
+    client: TestClient, auth_headers: dict, svc_deposit: dict
+) -> None:
+    client.delete(f"/services/{svc_deposit['id']}", headers=auth_headers)
+    r = client.get(f"/services/{svc_deposit['id']}", headers=auth_headers)
+    assert r.status_code == 404
+
+
+def test_delete_service_not_found(
+    client: TestClient, auth_headers: dict
+) -> None:
+    r = client.delete(
+        "/services/00000000-0000-0000-0000-000000000000", headers=auth_headers
+    )
+    assert r.status_code == 404
+
+
+# ---------------------------------------------------------------------------
 # Auth
 # ---------------------------------------------------------------------------
 

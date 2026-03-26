@@ -24,8 +24,10 @@ from app.operational.schemas import (
     ConfirmChargeIn,
     CustomerCreateIn,
     CustomerOut,
+    CustomerUpdateIn,
     ServiceCreateIn,
     ServiceOut,
+    ServiceUpdateIn,
 )
 
 router = APIRouter(tags=["operational"])
@@ -103,7 +105,10 @@ def list_customers(db: DbSession, current_user: ActiveTenantUser) -> list[Custom
     return list(
         db.scalars(
             select(Customer)
-            .where(Customer.tenant_id == current_user.tenant_id)
+            .where(
+                Customer.tenant_id == current_user.tenant_id,
+                Customer.is_active.is_(True),
+            )
             .order_by(Customer.created_at.desc())
         ).all()
     )
@@ -117,6 +122,7 @@ def get_customer(
         select(Customer).where(
             Customer.id == customer_id,
             Customer.tenant_id == current_user.tenant_id,
+            Customer.is_active.is_(True),
         )
     )
     if customer is None:
@@ -124,6 +130,77 @@ def get_customer(
             status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado"
         )
     return customer
+
+
+@router.patch("/customers/{customer_id}", response_model=CustomerOut)
+def update_customer(
+    customer_id: uuid.UUID,
+    body: CustomerUpdateIn,
+    db: DbSession,
+    current_user: ActiveTenantUser,
+) -> Customer:
+    customer = db.scalar(
+        select(Customer).where(
+            Customer.id == customer_id,
+            Customer.tenant_id == current_user.tenant_id,
+            Customer.is_active.is_(True),
+        )
+    )
+    if customer is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado"
+        )
+    before = {"name": customer.name, "phone": customer.phone, "notes": customer.notes}
+    if body.name is not None:
+        customer.name = body.name
+    if body.phone is not None:
+        customer.phone = body.phone
+    if "notes" in body.model_fields_set:
+        customer.notes = body.notes
+    db.flush()
+    _audit(
+        db,
+        user=current_user,
+        entity_type="customer",
+        entity_id=customer.id,
+        action="update",
+        before=before,
+        after={"name": customer.name, "phone": customer.phone, "notes": customer.notes},
+    )
+    db.commit()
+    db.refresh(customer)
+    return customer
+
+
+@router.delete("/customers/{customer_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_customer(
+    customer_id: uuid.UUID,
+    db: DbSession,
+    current_user: ActiveTenantUser,
+) -> None:
+    customer = db.scalar(
+        select(Customer).where(
+            Customer.id == customer_id,
+            Customer.tenant_id == current_user.tenant_id,
+            Customer.is_active.is_(True),
+        )
+    )
+    if customer is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Cliente não encontrado"
+        )
+    customer.is_active = False
+    db.flush()
+    _audit(
+        db,
+        user=current_user,
+        entity_type="customer",
+        entity_id=customer.id,
+        action="deactivate",
+        before={"is_active": True},
+        after={"is_active": False},
+    )
+    db.commit()
 
 
 @router.post(
@@ -164,7 +241,10 @@ def list_services(db: DbSession, current_user: ActiveTenantUser) -> list[Service
     return list(
         db.scalars(
             select(Service)
-            .where(Service.tenant_id == current_user.tenant_id)
+            .where(
+                Service.tenant_id == current_user.tenant_id,
+                Service.is_active.is_(True),
+            )
             .order_by(Service.created_at.desc())
         ).all()
     )
@@ -178,6 +258,7 @@ def get_service(
         select(Service).where(
             Service.id == service_id,
             Service.tenant_id == current_user.tenant_id,
+            Service.is_active.is_(True),
         )
     )
     if service is None:
@@ -185,6 +266,96 @@ def get_service(
             status_code=status.HTTP_404_NOT_FOUND, detail="Serviço não encontrado"
         )
     return service
+
+
+@router.patch("/services/{service_id}", response_model=ServiceOut)
+def update_service(
+    service_id: uuid.UUID,
+    body: ServiceUpdateIn,
+    db: DbSession,
+    current_user: ActiveTenantUser,
+) -> Service:
+    service = db.scalar(
+        select(Service).where(
+            Service.id == service_id,
+            Service.tenant_id == current_user.tenant_id,
+            Service.is_active.is_(True),
+        )
+    )
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Serviço não encontrado"
+        )
+    new_total = (
+        body.total_price if body.total_price is not None else service.total_price
+    )
+    new_deposit = (
+        body.deposit_amount
+        if body.deposit_amount is not None
+        else service.deposit_amount
+    )
+    if new_deposit > new_total:
+        raise HTTPException(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            detail="deposit_amount deve ser <= total_price",
+        )
+    before = {
+        "name": service.name,
+        "total_price": str(service.total_price),
+        "deposit_amount": str(service.deposit_amount),
+    }
+    if body.name is not None:
+        service.name = body.name
+    if body.duration_minutes is not None:
+        service.duration_minutes = body.duration_minutes
+    if body.total_price is not None:
+        service.total_price = body.total_price
+    if body.deposit_amount is not None:
+        service.deposit_amount = body.deposit_amount
+    db.flush()
+    _audit(
+        db,
+        user=current_user,
+        entity_type="service",
+        entity_id=service.id,
+        action="update",
+        before=before,
+        after={"name": service.name, "total_price": str(service.total_price)},
+    )
+    db.commit()
+    db.refresh(service)
+    return service
+
+
+@router.delete("/services/{service_id}", status_code=status.HTTP_204_NO_CONTENT)
+def delete_service(
+    service_id: uuid.UUID,
+    db: DbSession,
+    current_user: ActiveTenantUser,
+) -> None:
+    service = db.scalar(
+        select(Service).where(
+            Service.id == service_id,
+            Service.tenant_id == current_user.tenant_id,
+            Service.is_active.is_(True),
+        )
+    )
+    if service is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, detail="Serviço não encontrado"
+        )
+    service.is_active = False
+    db.flush()
+    _audit(
+        db,
+        user=current_user,
+        entity_type="service",
+        entity_id=service.id,
+        action="deactivate",
+        before={"is_active": True},
+        after={"is_active": False},
+    )
+    db.commit()
 
 
 @router.post(
@@ -197,6 +368,7 @@ def create_appointment(
         select(Customer).where(
             Customer.id == body.customer_id,
             Customer.tenant_id == current_user.tenant_id,
+            Customer.is_active.is_(True),
         )
     )
     if customer is None:
@@ -208,6 +380,7 @@ def create_appointment(
         select(Service).where(
             Service.id == body.service_id,
             Service.tenant_id == current_user.tenant_id,
+            Service.is_active.is_(True),
         )
     )
     if service is None:

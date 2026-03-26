@@ -25,3 +25,18 @@ export async function createCustomer(body: CustomerCreateIn): Promise<CustomerOu
   const { data } = await apiClient.post<CustomerOut>('/customers', body)
   return data
 }
+
+export interface CustomerUpdateIn {
+  name?: string
+  phone?: string
+  notes?: string | null
+}
+
+export async function updateCustomer(id: string, body: CustomerUpdateIn): Promise<CustomerOut> {
+  const { data } = await apiClient.patch<CustomerOut>(`/customers/${id}`, body)
+  return data
+}
+
+export async function deleteCustomer(id: string): Promise<void> {
+  await apiClient.delete(`/customers/${id}`)
+}
