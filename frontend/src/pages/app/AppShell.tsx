@@ -2,7 +2,7 @@ import { Link, NavLink, Outlet, useNavigate } from 'react-router-dom'
 import { useAuth } from '../../contexts/AuthContext'
 import styles from './AppShell.module.css'
 
-const ADMIN_TENANT = 'reminda-admin'
+const ADMIN_TENANT = 'reminda admin'
 
 function CalendarIcon() {
   return (
