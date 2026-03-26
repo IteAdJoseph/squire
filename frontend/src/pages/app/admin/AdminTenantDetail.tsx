@@ -104,8 +104,9 @@ export function AdminTenantDetail() {
     setCancelError(null)
     setCancelling(true)
     try {
-      const tenant = await cancelTenant(id!)
-      setDetail((prev) => (prev ? { ...prev, tenant } : prev))
+      await cancelTenant(id!)
+      const fresh = await getTenant(id!)
+      setDetail(fresh)
       setConfirmCancel(false)
     } catch (err) {
       setCancelError(extractError(err))
